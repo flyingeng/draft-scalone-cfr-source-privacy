@@ -1,0 +1,51 @@
+
+name: Build & Publish
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+      - run: gem install kramdown-rfc2629
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install xml2rfc
+      - run: bash scripts/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: draft
+          path: out/
+
+  pages:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+      - run: gem install kramdown-rfc2629
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install xml2rfc
+      - run: |
+          bash scripts/build.sh
+          mkdir -p _site
+          cp -r out/* _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
